@@ -6,9 +6,7 @@
   "framework": "nextjs",
   "outputDirectory": ".next",
   "env": {
-    "NEXT_PUBLIC_SITE_URL": {
-      "description": "서비스 URL"
-    },
+    "NEXT_PUBLIC_SITE_URL": "https://erp-system-unload-cm.vercel.app",
     "NEXT_PUBLIC_SUPABASE_URL": {
       "description": "Supabase 프로젝트 URL"
     },
