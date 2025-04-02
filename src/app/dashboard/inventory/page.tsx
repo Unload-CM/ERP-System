@@ -77,21 +77,16 @@ export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
-  const [debugInfo, setDebugInfo] = useState<string>('');
 
   useEffect(() => {
     async function fetchInventory() {
       setLoading(true);
-      setDebugInfo('데이터 로딩 시작...' + new Date().toISOString());
       
       try {
         // 먼저 Supabase 연결 테스트
         const connectionTest = await testSupabaseConnection();
-        setDebugInfo(prev => prev + '\n\nSupabase 연결 테스트 결과: ' + 
-          JSON.stringify(connectionTest, null, 2));
         
         if (!connectionTest.success) {
-          setDebugInfo(prev => prev + '\n\n연결 테스트 실패, Supabase 연결이 필요합니다.');
           setError('Supabase 연결에 실패했습니다. API 키를 확인하세요: ' + 
             (connectionTest.error ? JSON.stringify(connectionTest.error) : '알 수 없는 오류'));
           setLoading(false);
@@ -100,45 +95,30 @@ export default function InventoryPage() {
         
         // 직접 API 호출을 시도해서 응답을 확인
         const directResponse = await supabase.from('inventory').select('*');
-        setDebugInfo(prev => prev + '\n\n직접 API 호출 결과: ' + 
-          JSON.stringify({
-            status: directResponse.status,
-            statusText: directResponse.statusText,
-            error: directResponse.error,
-            count: directResponse.data?.length || 0,
-            firstItem: directResponse.data && directResponse.data.length > 0 ? 
-              JSON.stringify(directResponse.data[0]).substring(0, 100) : 'No data'
-          }, null, 2));
         
         if (directResponse.error) {
           setError('자재 목록을 불러오는 데 실패했습니다: ' + directResponse.error.message);
-          setDebugInfo(prev => prev + '\n\n데이터 로드 실패: ' + JSON.stringify(directResponse.error, null, 2));
           setLoading(false);
           return;
         }
         
         if (!directResponse.data || directResponse.data.length === 0) {
           setError('자재 목록이 비어 있습니다.');
-          setDebugInfo(prev => prev + '\n\n데이터가 없습니다.');
           setInventory([]);
           setLoading(false);
           return;
         }
         
         setInventory(directResponse.data);
-        setDebugInfo(prev => prev + '\n\n데이터 로딩 성공! 항목 수: ' + directResponse.data.length);
         
         // 카테고리 목록 추출
         const uniqueCategories = Array.from(new Set(directResponse.data.map((item: InventoryItem) => item.category)));
         setCategories(uniqueCategories as string[]);
-        setDebugInfo(prev => prev + '\n\n카테고리 추출: ' + uniqueCategories.join(', '));
       } catch (err) {
         console.error('자재 데이터 불러오기 오류:', err);
         setError('데이터 로딩 중 오류가 발생했습니다: ' + (err instanceof Error ? err.message : String(err)));
-        setDebugInfo(prev => prev + '\n\n예외 발생: ' + (err instanceof Error ? err.message : String(err)) + '\n스택: ' + (err instanceof Error ? err.stack : 'No stack trace'));
       } finally {
         setLoading(false);
-        setDebugInfo(prev => prev + '\n\n데이터 로딩 완료: ' + new Date().toISOString());
       }
     }
 
@@ -194,20 +174,6 @@ export default function InventoryPage() {
         </div>
       )}
       
-      {/* 디버그 정보 표시 */}
-      <div className="bg-gray-100 p-4 rounded-lg text-xs font-mono overflow-auto max-h-96 mb-4">
-        <div className="flex justify-between items-center mb-2">
-          <h3 className="font-bold">디버그 정보:</h3>
-          <button 
-            onClick={() => setDebugInfo('')}
-            className="px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-          >
-            지우기
-          </button>
-        </div>
-        <pre className="whitespace-pre-wrap">{debugInfo}</pre>
-      </div>
-
       <div className="space-y-6">
         <div className="pb-5 border-b border-gray-200 sm:flex sm:items-center sm:justify-between">
           <h1 className="text-3xl font-bold leading-tight text-gray-900">자재 관리</h1>

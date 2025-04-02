@@ -10,7 +10,6 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<any>(null);
   const [stats, setStats] = useState<{
     totalProducts: number;
     lowStockProducts: number;
@@ -64,7 +63,6 @@ export default function DashboardPage() {
         
         // Supabase 연결 테스트
         const connectionTest = await testSupabaseConnection();
-        setConnectionStatus(connectionTest);
         
         if (!connectionTest.success) {
           setError(`Supabase 연결 실패: ${connectionTest.error || '알 수 없는 오류'}`);
@@ -153,31 +151,6 @@ export default function DashboardPage() {
           ERP 시스템에 오신 것을 환영합니다. 이 대시보드에서 모든 업무를 관리할 수 있습니다.
         </p>
       </div>
-
-      {connectionStatus && (
-        <div className={`mb-8 p-4 rounded-lg ${connectionStatus.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-          <h2 className="text-lg font-medium mb-2">데이터베이스 연결 상태</h2>
-          <div className="flex items-center">
-            <div className={`w-3 h-3 rounded-full mr-2 ${connectionStatus.success ? 'bg-green-500' : 'bg-red-500'}`}></div>
-            <p>{connectionStatus.success ? '연결됨' : '연결 실패'}</p>
-          </div>
-          {connectionStatus.success && (
-            <p className="text-sm text-gray-500 mt-1">응답 시간: {connectionStatus.responseTime}ms</p>
-          )}
-          {!connectionStatus.success && (
-            <div className="mt-2 text-sm text-red-700">
-              <p>오류: {connectionStatus.error}</p>
-              <p className="mt-1">Supabase API 키와 URL을 확인하세요.</p>
-              <button 
-                onClick={() => window.location.reload()} 
-                className="mt-2 bg-red-100 border border-red-300 text-red-700 px-3 py-1 rounded hover:bg-red-200"
-              >
-                다시 시도
-              </button>
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {/* 자재 관리 카드 */}
