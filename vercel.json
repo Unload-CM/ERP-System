@@ -7,11 +7,7 @@
   "outputDirectory": ".next",
   "env": {
     "NEXT_PUBLIC_SITE_URL": "https://erp-system-unload-cm.vercel.app",
-    "NEXT_PUBLIC_SUPABASE_URL": {
-      "description": "Supabase 프로젝트 URL"
-    },
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": {
-      "description": "Supabase 익명 키"
-    }
+    "NEXT_PUBLIC_SUPABASE_URL": "https://vkxkukmzahicgbgfuxcw.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZreGt1a216YWhpY2diZ2Z1eGN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM0ODkxNjMsImV4cCI6MjA1OTA2NTE2M30.2nsj7FkLKuxbdxSsvVDZlLcHYgsEUiZlqS_nPmh0n-Y"
   }
 } 
