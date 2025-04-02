@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase, safeSupabaseQuery } from '@/lib/supabase';
+import SettingsModal from '@/components/modals/SettingsModal';
 
 type CompanySettings = {
   id: string;
@@ -45,6 +46,17 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  
+  // 모달 관련 상태
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<'siteInfo' | 'category' | 'employee' | 'priority' | 'status'>('siteInfo');
+  
+  // 추가 설정 데이터
+  const [categories, setCategories] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [priorities, setPriorities] = useState<any[]>([]);
+  const [statuses, setStatuses] = useState<any[]>([]);
+  const [loadingAdditionalData, setLoadingAdditionalData] = useState(false);
 
   useEffect(() => {
     async function fetchSettings() {
@@ -90,6 +102,80 @@ export default function SettingsPage() {
 
     fetchSettings();
   }, []);
+
+  // 추가 설정 데이터 불러오기
+  const fetchAdditionalData = async () => {
+    setLoadingAdditionalData(true);
+    
+    try {
+      // 카테고리 불러오기
+      const { data: categoryData, error: categoryError } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
+        
+      if (!categoryError && categoryData) {
+        setCategories(categoryData);
+      }
+      
+      // 직원 불러오기
+      const { data: employeeData, error: employeeError } = await supabase
+        .from('employees')
+        .select('*')
+        .order('name');
+        
+      if (!employeeError && employeeData) {
+        setEmployees(employeeData);
+      }
+      
+      // 우선순위 불러오기
+      const { data: priorityData, error: priorityError } = await supabase
+        .from('priorities')
+        .select('*')
+        .order('value');
+        
+      if (!priorityError && priorityData) {
+        setPriorities(priorityData);
+      }
+      
+      // 상태 불러오기
+      const { data: statusData, error: statusError } = await supabase
+        .from('statuses')
+        .select('*')
+        .order('name');
+        
+      if (!statusError && statusData) {
+        setStatuses(statusData);
+      }
+    } catch (err) {
+      console.error('추가 설정 데이터 불러오기 오류:', err);
+    } finally {
+      setLoadingAdditionalData(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSettings();
+    fetchAdditionalData();
+  }, []);
+  
+  const handleOpenModal = (type: 'siteInfo' | 'category' | 'employee' | 'priority' | 'status') => {
+    setModalType(type);
+    setIsModalOpen(true);
+  };
+  
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+  };
+  
+  const handleModalSuccess = () => {
+    // 설정 데이터 다시 불러오기
+    if (modalType === 'siteInfo') {
+      fetchSettings();
+    } else {
+      fetchAdditionalData();
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -191,30 +277,6 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">시스템 설정</h1>
-        {!editMode ? (
-          <button
-            onClick={() => setEditMode(true)}
-            className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md"
-          >
-            수정
-          </button>
-        ) : (
-          <div className="space-x-2">
-            <button
-              onClick={handleCancel}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md"
-            >
-              취소
-            </button>
-            <button
-              onClick={handleSaveSettings}
-              disabled={isSaving}
-              className={`bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {isSaving ? '저장 중...' : '저장'}
-            </button>
-          </div>
-        )}
       </div>
 
       {saveSuccess && (
@@ -230,194 +292,217 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {/* 사이트 정보 섹션 */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <h2 className="text-lg font-medium">사이트 정보</h2>
+          <button
+            onClick={() => handleOpenModal('siteInfo')}
+            className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm"
+          >
+            수정
+          </button>
+        </div>
         <div className="p-6">
-          <h2 className="text-lg font-medium mb-4">회사 정보</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <dl className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="company_name" className="block text-sm font-medium text-gray-700 mb-1">
-                회사명
-              </label>
-              {editMode ? (
-                <input
-                  type="text"
-                  id="company_name"
-                  name="company_name"
-                  value={formData.company_name || ''}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                />
-              ) : (
-                <p className="text-gray-900">{settings.company_name}</p>
-              )}
+              <dt className="text-sm font-medium text-gray-500">회사명</dt>
+              <dd className="mt-1 text-sm text-gray-900">{settings?.company_name || '-'}</dd>
             </div>
-            
             <div>
-              <label htmlFor="tax_id" className="block text-sm font-medium text-gray-700 mb-1">
-                사업자등록번호
-              </label>
-              {editMode ? (
-                <input
-                  type="text"
-                  id="tax_id"
-                  name="tax_id"
-                  value={formData.tax_id || ''}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                />
-              ) : (
-                <p className="text-gray-900">{settings.tax_id}</p>
-              )}
+              <dt className="text-sm font-medium text-gray-500">회사 주소</dt>
+              <dd className="mt-1 text-sm text-gray-900">{settings?.company_address || '-'}</dd>
             </div>
-            
             <div>
-              <label htmlFor="company_email" className="block text-sm font-medium text-gray-700 mb-1">
-                이메일
-              </label>
-              {editMode ? (
-                <input
-                  type="email"
-                  id="company_email"
-                  name="company_email"
-                  value={formData.company_email || ''}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                />
-              ) : (
-                <p className="text-gray-900">{settings.company_email}</p>
-              )}
+              <dt className="text-sm font-medium text-gray-500">전화번호</dt>
+              <dd className="mt-1 text-sm text-gray-900">{settings?.company_phone || '-'}</dd>
             </div>
-            
             <div>
-              <label htmlFor="company_phone" className="block text-sm font-medium text-gray-700 mb-1">
-                전화번호
-              </label>
-              {editMode ? (
-                <input
-                  type="text"
-                  id="company_phone"
-                  name="company_phone"
-                  value={formData.company_phone || ''}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                />
-              ) : (
-                <p className="text-gray-900">{settings.company_phone}</p>
-              )}
+              <dt className="text-sm font-medium text-gray-500">이메일</dt>
+              <dd className="mt-1 text-sm text-gray-900">{settings?.company_email || '-'}</dd>
             </div>
-            
-            <div className="md:col-span-2">
-              <label htmlFor="company_address" className="block text-sm font-medium text-gray-700 mb-1">
-                주소
-              </label>
-              {editMode ? (
-                <input
-                  type="text"
-                  id="company_address"
-                  name="company_address"
-                  value={formData.company_address || ''}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                />
-              ) : (
-                <p className="text-gray-900">{settings.company_address}</p>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        <div className="border-t border-gray-200 p-6">
-          <h2 className="text-lg font-medium mb-4">시스템 설정</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-1">
-                기본 통화
-              </label>
-              {editMode ? (
-                <select
-                  id="currency"
-                  name="currency"
-                  value={formData.currency || ''}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="KRW">한국 원 (₩)</option>
-                  <option value="USD">미국 달러 ($)</option>
-                  <option value="EUR">유로 (€)</option>
-                  <option value="JPY">일본 엔 (¥)</option>
-                </select>
-              ) : (
-                <p className="text-gray-900">
-                  {settings.currency === 'KRW' ? '한국 원 (₩)' : 
-                   settings.currency === 'USD' ? '미국 달러 ($)' : 
-                   settings.currency === 'EUR' ? '유로 (€)' : 
-                   settings.currency === 'JPY' ? '일본 엔 (¥)' : 
-                   settings.currency}
-                </p>
-              )}
+              <dt className="text-sm font-medium text-gray-500">사업자 등록번호</dt>
+              <dd className="mt-1 text-sm text-gray-900">{settings?.tax_id || '-'}</dd>
             </div>
-            
             <div>
-              <label htmlFor="timezone" className="block text-sm font-medium text-gray-700 mb-1">
-                타임존
-              </label>
-              {editMode ? (
-                <select
-                  id="timezone"
-                  name="timezone"
-                  value={formData.timezone || ''}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="Asia/Seoul">아시아/서울 (UTC+9)</option>
-                  <option value="America/New_York">미국/뉴욕 (UTC-5)</option>
-                  <option value="Europe/London">유럽/런던 (UTC+0)</option>
-                  <option value="Asia/Tokyo">아시아/도쿄 (UTC+9)</option>
-                </select>
-              ) : (
-                <p className="text-gray-900">
-                  {settings.timezone === 'Asia/Seoul' ? '아시아/서울 (UTC+9)' : 
-                   settings.timezone === 'America/New_York' ? '미국/뉴욕 (UTC-5)' : 
-                   settings.timezone === 'Europe/London' ? '유럽/런던 (UTC+0)' : 
-                   settings.timezone === 'Asia/Tokyo' ? '아시아/도쿄 (UTC+9)' : 
-                   settings.timezone}
-                </p>
-              )}
+              <dt className="text-sm font-medium text-gray-500">최근 업데이트</dt>
+              <dd className="mt-1 text-sm text-gray-900">{settings?.updated_at ? formatDate(settings.updated_at) : '-'}</dd>
             </div>
-            
-            <div>
-              <label htmlFor="date_format" className="block text-sm font-medium text-gray-700 mb-1">
-                날짜 형식
-              </label>
-              {editMode ? (
-                <select
-                  id="date_format"
-                  name="date_format"
-                  value={formData.date_format || ''}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                  <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                  <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                  <option value="YYYY/MM/DD">YYYY/MM/DD</option>
-                </select>
-              ) : (
-                <p className="text-gray-900">{settings.date_format}</p>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        <div className="border-t border-gray-200 p-6 bg-gray-50">
-          <div className="flex items-center justify-between text-sm text-gray-500">
-            <div>마지막 업데이트: {formatDate(settings.updated_at)}</div>
-            <div>업데이트한 사용자: {settings.user_full_name}</div>
-          </div>
+          </dl>
         </div>
       </div>
+      
+      {/* 카테고리 섹션 */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <h2 className="text-lg font-medium">카테고리 관리</h2>
+          <button
+            onClick={() => handleOpenModal('category')}
+            className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm"
+          >
+            카테고리 추가
+          </button>
+        </div>
+        <div className="p-6">
+          {loadingAdditionalData ? (
+            <div className="flex justify-center py-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
+            </div>
+          ) : categories.length > 0 ? (
+            <ul className="divide-y divide-gray-200">
+              {categories.map(category => (
+                <li key={category.id} className="py-4">
+                  <div className="flex justify-between">
+                    <div>
+                      <h3 className="text-sm font-medium">{category.name}</h3>
+                      <p className="text-sm text-gray-500">{category.description}</p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button className="text-indigo-600 hover:text-indigo-900 text-sm">수정</button>
+                      <button className="text-red-600 hover:text-red-900 text-sm">삭제</button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500 py-4">등록된 카테고리가 없습니다.</p>
+          )}
+        </div>
+      </div>
+      
+      {/* 직원 관리 섹션 */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <h2 className="text-lg font-medium">직원 관리</h2>
+          <button
+            onClick={() => handleOpenModal('employee')}
+            className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm"
+          >
+            직원 추가
+          </button>
+        </div>
+        <div className="p-6">
+          {loadingAdditionalData ? (
+            <div className="flex justify-center py-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
+            </div>
+          ) : employees.length > 0 ? (
+            <ul className="divide-y divide-gray-200">
+              {employees.map(employee => (
+                <li key={employee.id} className="py-4">
+                  <div className="flex justify-between">
+                    <div>
+                      <h3 className="text-sm font-medium">{employee.name}</h3>
+                      <p className="text-sm text-gray-500">{employee.department} - {employee.position}</p>
+                      <p className="text-sm text-gray-500">{employee.email} | {employee.phone}</p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button className="text-indigo-600 hover:text-indigo-900 text-sm">수정</button>
+                      <button className="text-red-600 hover:text-red-900 text-sm">삭제</button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500 py-4">등록된 직원이 없습니다.</p>
+          )}
+        </div>
+      </div>
+      
+      {/* 우선순위 관리 섹션 */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <h2 className="text-lg font-medium">우선순위 관리</h2>
+          <button
+            onClick={() => handleOpenModal('priority')}
+            className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm"
+          >
+            우선순위 추가
+          </button>
+        </div>
+        <div className="p-6">
+          {loadingAdditionalData ? (
+            <div className="flex justify-center py-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
+            </div>
+          ) : priorities.length > 0 ? (
+            <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {priorities.map(priority => (
+                <li key={priority.id} className="border border-gray-200 rounded-md p-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <div 
+                        className="w-4 h-4 rounded-full mr-2" 
+                        style={{ backgroundColor: priority.color || '#3B82F6' }}
+                      ></div>
+                      <h3 className="text-sm font-medium">{priority.name}</h3>
+                    </div>
+                    <span className="text-sm text-gray-500">값: {priority.value}</span>
+                  </div>
+                  <div className="mt-2 flex justify-end space-x-2">
+                    <button className="text-indigo-600 hover:text-indigo-900 text-sm">수정</button>
+                    <button className="text-red-600 hover:text-red-900 text-sm">삭제</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500 py-4">등록된 우선순위가 없습니다.</p>
+          )}
+        </div>
+      </div>
+      
+      {/* 상태 관리 섹션 */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <h2 className="text-lg font-medium">상태 관리</h2>
+          <button
+            onClick={() => handleOpenModal('status')}
+            className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm"
+          >
+            상태 추가
+          </button>
+        </div>
+        <div className="p-6">
+          {loadingAdditionalData ? (
+            <div className="flex justify-center py-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
+            </div>
+          ) : statuses.length > 0 ? (
+            <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {statuses.map(status => (
+                <li key={status.id} className="border border-gray-200 rounded-md p-4">
+                  <div className="flex items-center">
+                    <div 
+                      className="w-4 h-4 rounded-full mr-2" 
+                      style={{ backgroundColor: status.color || '#3B82F6' }}
+                    ></div>
+                    <h3 className="text-sm font-medium">{status.name}</h3>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">{status.description}</p>
+                  <div className="mt-2 flex justify-end space-x-2">
+                    <button className="text-indigo-600 hover:text-indigo-900 text-sm">수정</button>
+                    <button className="text-red-600 hover:text-red-900 text-sm">삭제</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500 py-4">등록된 상태가 없습니다.</p>
+          )}
+        </div>
+      </div>
+      
+      {/* 설정 모달 */}
+      <SettingsModal 
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onSuccess={handleModalSuccess}
+        type={modalType}
+      />
     </div>
   );
 } 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase, safeSupabaseQuery, testSupabaseConnection } from '@/lib/supabase';
 import Link from 'next/link';
+import AddItemModal from '@/components/modals/AddItemModal';
 
 // 모킹 데이터 - API 연결 실패 시 사용
 const MOCK_INVENTORY_DATA = [
@@ -77,51 +78,65 @@ export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleAddItem = () => {
+    setIsModalOpen(true);
+  };
+  
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+  };
+  
+  const handleModalSuccess = () => {
+    // 자재 목록 다시 불러오기
+    fetchInventory();
+  };
+
+  const fetchInventory = async () => {
+    setLoading(true);
+    
+    try {
+      // 먼저 Supabase 연결 테스트
+      const connectionTest = await testSupabaseConnection();
+      
+      if (!connectionTest.success) {
+        setError('Supabase 연결에 실패했습니다. API 키를 확인하세요: ' + 
+          (connectionTest.error ? JSON.stringify(connectionTest.error) : '알 수 없는 오류'));
+        setLoading(false);
+        return;
+      }
+      
+      // 직접 API 호출을 시도해서 응답을 확인
+      const directResponse = await supabase.from('inventory').select('*');
+      
+      if (directResponse.error) {
+        setError('자재 목록을 불러오는 데 실패했습니다: ' + directResponse.error.message);
+        setLoading(false);
+        return;
+      }
+      
+      if (!directResponse.data || directResponse.data.length === 0) {
+        setError('자재 목록이 비어 있습니다.');
+        setInventory([]);
+        setLoading(false);
+        return;
+      }
+      
+      setInventory(directResponse.data);
+      
+      // 카테고리 목록 추출
+      const uniqueCategories = Array.from(new Set(directResponse.data.map((item: InventoryItem) => item.category)));
+      setCategories(uniqueCategories as string[]);
+    } catch (err) {
+      console.error('자재 데이터 불러오기 오류:', err);
+      setError('데이터 로딩 중 오류가 발생했습니다: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function fetchInventory() {
-      setLoading(true);
-      
-      try {
-        // 먼저 Supabase 연결 테스트
-        const connectionTest = await testSupabaseConnection();
-        
-        if (!connectionTest.success) {
-          setError('Supabase 연결에 실패했습니다. API 키를 확인하세요: ' + 
-            (connectionTest.error ? JSON.stringify(connectionTest.error) : '알 수 없는 오류'));
-          setLoading(false);
-          return;
-        }
-        
-        // 직접 API 호출을 시도해서 응답을 확인
-        const directResponse = await supabase.from('inventory').select('*');
-        
-        if (directResponse.error) {
-          setError('자재 목록을 불러오는 데 실패했습니다: ' + directResponse.error.message);
-          setLoading(false);
-          return;
-        }
-        
-        if (!directResponse.data || directResponse.data.length === 0) {
-          setError('자재 목록이 비어 있습니다.');
-          setInventory([]);
-          setLoading(false);
-          return;
-        }
-        
-        setInventory(directResponse.data);
-        
-        // 카테고리 목록 추출
-        const uniqueCategories = Array.from(new Set(directResponse.data.map((item: InventoryItem) => item.category)));
-        setCategories(uniqueCategories as string[]);
-      } catch (err) {
-        console.error('자재 데이터 불러오기 오류:', err);
-        setError('데이터 로딩 중 오류가 발생했습니다: ' + (err instanceof Error ? err.message : String(err)));
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchInventory();
   }, []);
 
@@ -178,14 +193,13 @@ export default function InventoryPage() {
         <div className="pb-5 border-b border-gray-200 sm:flex sm:items-center sm:justify-between">
           <h1 className="text-3xl font-bold leading-tight text-gray-900">자재 관리</h1>
           <div className="mt-3 sm:mt-0 sm:ml-4">
-            <Link href="/dashboard/inventory/add">
-              <button
-                type="button"
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                자재 추가
-              </button>
-            </Link>
+            <button
+              type="button"
+              onClick={handleAddItem}
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              자재 추가
+            </button>
           </div>
         </div>
 
@@ -297,6 +311,15 @@ export default function InventoryPage() {
           </div>
         </div>
       </div>
+      
+      {/* 모달 컴포넌트 */}
+      <AddItemModal 
+        isOpen={isModalOpen} 
+        onClose={handleModalClose} 
+        onSuccess={handleModalSuccess}
+        type="inventory"
+        categories={categories}
+      />
     </div>
   );
 } 
