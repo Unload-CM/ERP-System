@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 export default function DashboardLayout({
   children,
@@ -10,8 +10,10 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
     console.log('대시보드 레이아웃 마운트됨');
@@ -20,18 +22,44 @@ export default function DashboardLayout({
     if (typeof window !== 'undefined') {
       try {
         const userStr = localStorage.getItem('user');
-        if (userStr) {
+        const isAuthenticated = localStorage.getItem('is_authenticated');
+        
+        if (userStr && isAuthenticated === 'true') {
           const userData = JSON.parse(userStr);
           console.log('대시보드 레이아웃에서 사용자 정보 확인:', userData);
           setUser(userData);
+          setIsLoading(false);
         } else {
-          console.log('사용자 정보가 없습니다');
+          console.log('사용자 정보가 없거나 인증되지 않음, 로그인 페이지로 리디렉션');
+          // 로그인 페이지로 리디렉션
+          router.push('/login');
         }
       } catch (error) {
         console.error('사용자 정보 파싱 오류:', error);
+        // 오류 발생 시 로그인 페이지로 리디렉션
+        router.push('/login');
       }
     }
-  }, []);
+  }, [router]);
+
+  const handleLogout = () => {
+    // 로그아웃 처리
+    localStorage.removeItem('user');
+    localStorage.removeItem('is_authenticated');
+    router.push('/login');
+  };
+
+  // 로딩 중일 때 표시할 내용
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -192,6 +220,7 @@ export default function DashboardLayout({
               <div className="ml-3 relative">
                 <button
                   type="button"
+                  onClick={handleLogout}
                   className="ml-2 bg-primary-100 text-primary-800 px-2 py-1 rounded-md text-sm font-medium hover:bg-primary-200 focus:outline-none"
                 >
                   로그아웃
