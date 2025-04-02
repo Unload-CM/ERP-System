@@ -64,15 +64,10 @@ export default function LoginPage() {
         const savedUser = localStorage.getItem('user');
         console.log('localStorage에 저장된 사용자 정보:', savedUser);
         
-        // 직접 대시보드로 이동
-        console.log('대시보드로 직접 이동 시도...');
+        console.log('router.push를 사용하여 대시보드로 이동 시도...');
         
-        // 브라우저 출처 도메인 로그
-        console.log('현재 도메인:', window.location.origin);
-        console.log('타겟 URL:', window.location.origin + '/dashboard');
-        
-        // 하드 리디렉션을 통한 이동
-        window.location.replace(window.location.origin + '/dashboard');
+        // Next.js router를 사용하여 대시보드로 이동
+        router.push('/dashboard');
         
         return;
       }
