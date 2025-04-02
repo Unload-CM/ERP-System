@@ -58,50 +58,46 @@ export default function SettingsPage() {
   const [statuses, setStatuses] = useState<any[]>([]);
   const [loadingAdditionalData, setLoadingAdditionalData] = useState(false);
 
-  useEffect(() => {
-    async function fetchSettings() {
-      setLoading(true);
+  const fetchSettings = async () => {
+    setLoading(true);
+    
+    try {
+      // Supabase API 사용 시도 (오류 발생 시 모킹 데이터 사용)
+      const { data, error } = await safeSupabaseQuery(
+        async () => {
+          const { data: settingsData, error: settingsError } = await supabase
+            .from('company_settings')
+            .select(`
+              *,
+              users:updated_by(full_name)
+            `)
+            .single();
+          
+          if (settingsError) throw settingsError;
+          
+          const enrichedData = {
+            ...settingsData,
+            user_full_name: settingsData.users?.full_name || '알 수 없음'
+          };
+          
+          return { data: enrichedData, error: null };
+        },
+        MOCK_SETTINGS
+      );
       
-      try {
-        // Supabase API 사용 시도 (오류 발생 시 모킹 데이터 사용)
-        const { data, error } = await safeSupabaseQuery(
-          async () => {
-            const { data: settingsData, error: settingsError } = await supabase
-              .from('company_settings')
-              .select(`
-                *,
-                users:updated_by(full_name)
-              `)
-              .single();
-            
-            if (settingsError) throw settingsError;
-            
-            const enrichedData = {
-              ...settingsData,
-              user_full_name: settingsData.users?.full_name || '알 수 없음'
-            };
-            
-            return { data: enrichedData, error: null };
-          },
-          MOCK_SETTINGS
-        );
-        
-        if (error) {
-          setError('설정을 불러오는 데 실패했습니다.');
-        } else if (data) {
-          setSettings(data);
-          setFormData(data);
-        }
-      } catch (err) {
-        console.error('설정 데이터 불러오기 오류:', err);
-        setError('데이터 로딩 중 오류가 발생했습니다.');
-      } finally {
-        setLoading(false);
+      if (error) {
+        setError('설정을 불러오는 데 실패했습니다.');
+      } else if (data) {
+        setSettings(data);
+        setFormData(data);
       }
+    } catch (err) {
+      console.error('설정 데이터 불러오기 오류:', err);
+      setError('데이터 로딩 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
     }
-
-    fetchSettings();
-  }, []);
+  };
 
   // 추가 설정 데이터 불러오기
   const fetchAdditionalData = async () => {
