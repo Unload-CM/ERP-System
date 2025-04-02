@@ -1,0 +1,118 @@
+{
+  "systemName": "DMC ERP System",
+  "version": "1.0.0",
+  "description": "DMC 전사적 자원 관리 시스템",
+  "database": {
+    "type": "PostgreSQL",
+    "version": "14.0",
+    "provider": "Supabase",
+    "tables": [
+      {
+        "name": "users",
+        "description": "사용자 정보",
+        "columns": [
+          { "name": "id", "type": "UUID", "isPrimary": true, "description": "사용자 고유 ID" },
+          { "name": "email", "type": "TEXT", "isUnique": true, "description": "사용자 이메일" },
+          { "name": "full_name", "type": "TEXT", "description": "사용자 이름" },
+          { "name": "role", "type": "TEXT", "description": "사용자 권한 (admin, user)" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "description": "생성 일시" }
+        ]
+      },
+      {
+        "name": "inventory",
+        "description": "자재 관리",
+        "columns": [
+          { "name": "id", "type": "UUID", "isPrimary": true, "description": "자재 고유 ID" },
+          { "name": "name", "type": "TEXT", "description": "자재 이름" },
+          { "name": "description", "type": "TEXT", "description": "자재 설명" },
+          { "name": "quantity", "type": "INTEGER", "description": "재고 수량" },
+          { "name": "unit_price", "type": "DECIMAL(10, 2)", "description": "단가" },
+          { "name": "category", "type": "TEXT", "description": "자재 분류" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "description": "생성 일시" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "description": "수정 일시" }
+        ]
+      },
+      {
+        "name": "purchase_request",
+        "description": "구매 요청",
+        "columns": [
+          { "name": "id", "type": "UUID", "isPrimary": true, "description": "구매 요청 고유 ID" },
+          { "name": "user_id", "type": "UUID", "description": "요청자 ID" },
+          { "name": "title", "type": "TEXT", "description": "요청 제목" },
+          { "name": "description", "type": "TEXT", "description": "요청 설명" },
+          { "name": "status", "type": "TEXT", "description": "요청 상태 (pending, approved, rejected, completed)" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "description": "생성 일시" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "description": "수정 일시" }
+        ]
+      },
+      {
+        "name": "purchase_request_items",
+        "description": "구매 요청 항목",
+        "columns": [
+          { "name": "id", "type": "UUID", "isPrimary": true, "description": "항목 고유 ID" },
+          { "name": "purchase_request_id", "type": "UUID", "description": "구매 요청 ID" },
+          { "name": "inventory_id", "type": "UUID", "description": "자재 ID" },
+          { "name": "name", "type": "TEXT", "description": "항목 이름" },
+          { "name": "quantity", "type": "INTEGER", "description": "수량" },
+          { "name": "estimated_price", "type": "DECIMAL(10, 2)", "description": "예상 가격" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "description": "생성 일시" }
+        ]
+      },
+      {
+        "name": "production_plan",
+        "description": "생산 계획",
+        "columns": [
+          { "name": "id", "type": "UUID", "isPrimary": true, "description": "생산 계획 고유 ID" },
+          { "name": "title", "type": "TEXT", "description": "계획 제목" },
+          { "name": "description", "type": "TEXT", "description": "계획 설명" },
+          { "name": "start_date", "type": "DATE", "description": "시작 일자" },
+          { "name": "end_date", "type": "DATE", "description": "종료 일자" },
+          { "name": "status", "type": "TEXT", "description": "상태 (planned, in_progress, completed, cancelled)" },
+          { "name": "created_by", "type": "UUID", "description": "생성자 ID" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "description": "생성 일시" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "description": "수정 일시" }
+        ]
+      },
+      {
+        "name": "shipping_plan",
+        "description": "배송 계획",
+        "columns": [
+          { "name": "id", "type": "UUID", "isPrimary": true, "description": "배송 계획 고유 ID" },
+          { "name": "title", "type": "TEXT", "description": "계획 제목" },
+          { "name": "description", "type": "TEXT", "description": "계획 설명" },
+          { "name": "shipping_date", "type": "DATE", "description": "배송 예정일" },
+          { "name": "destination", "type": "TEXT", "description": "배송지" },
+          { "name": "status", "type": "TEXT", "description": "상태 (planned, shipped, delivered, cancelled)" },
+          { "name": "created_by", "type": "UUID", "description": "생성자 ID" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "description": "생성 일시" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "description": "수정 일시" }
+        ]
+      }
+    ]
+  },
+  "languages": ["ko", "en", "th"],
+  "admin": {
+    "email": "admin@example.com",
+    "password": "admin123!",
+    "full_name": "관리자"
+  },
+  "deployment": {
+    "platform": "Vercel",
+    "region": "ap-northeast-2",
+    "environment": "production"
+  },
+  "frontend": {
+    "framework": "Next.js",
+    "styling": "Tailwind CSS",
+    "version": "15.2.4"
+  },
+  "backend": {
+    "provider": "Supabase",
+    "features": [
+      "Authentication",
+      "Database",
+      "Storage",
+      "Realtime subscriptions"
+    ]
+  }
+} 
