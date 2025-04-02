@@ -115,3 +115,18 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## GitHub 저장소에 푸시하기
+
+GitHub에 코드를 올리려면 다음 단계를 따르세요:
+
+1. [GitHub](https://github.com/)에서 새 저장소를 생성하세요.
+2. 터미널에서 다음 명령어를 실행하세요 (YOUR_USERNAME과 YOUR_REPO_NAME을 실제 GitHub 사용자 이름과 저장소 이름으로 대체하세요):
+
+```bash
+# 원격 저장소 추가
+git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+
+# 변경사항을 원격 저장소에 푸시
+git push -u origin main
+```
