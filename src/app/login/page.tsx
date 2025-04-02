@@ -89,49 +89,6 @@ export default function LoginPage() {
   const loginWithEmail = async () => {
     console.log('이메일 로그인 시도:', formData.email);
     
-    // 임시 디버깅: 환경 변수 확인
-    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 10) + '...');
-    console.log('Supabase Anon Key (처음 10자):', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 10) + '...');
-    
-    // 관리자 계정 테스트
-    if (formData.email === 'admin@example.com' && formData.password === 'admin123') {
-      console.log('관리자 계정 테스트 로그인 시도');
-      
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password
-        });
-
-        console.log('로그인 응답:', data ? '성공' : '실패', error ? `오류: ${error.message}` : '오류 없음');
-        
-        if (error) {
-          console.error('관리자 로그인 오류 상세:', error);
-          
-          // 자세한 오류 정보 출력
-          if (error.status) {
-            console.error(`HTTP 상태 코드: ${error.status}`);
-          }
-          if (error.message.includes('Invalid login credentials')) {
-            throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.');
-          }
-          throw error;
-        }
-
-        if (data.user) {
-          console.log('관리자 로그인 성공:', data.user.email);
-          router.push('/dashboard');
-        } else {
-          router.push('/dashboard');
-        }
-      } catch (error: any) {
-        console.error('관리자 계정 테스트 로그인 처리 오류:', error);
-        throw error;
-      }
-      return;
-    }
-    
-    // 일반 로그인 로직
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
@@ -149,8 +106,39 @@ export default function LoginPage() {
 
       if (data.user) {
         console.log('로그인 성공:', data.user.email);
-        await checkPasswordResetRequired(data.user.id);
+        
+        // 사용자 추가 정보 가져오기
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (userError) {
+          console.error('사용자 정보 조회 오류:', userError);
+        }
+        
+        // 로컬 스토리지에 사용자 정보 저장
+        const userToStore = {
+          id: data.user.id,
+          email: data.user.email,
+          user_metadata: userData || data.user.user_metadata || {},
+          role: userData?.role || 'user',
+          isAuthenticated: true
+        };
+        
+        localStorage.setItem('user', JSON.stringify(userToStore));
+        localStorage.setItem('is_authenticated', 'true');
+        
+        // 비밀번호 재설정 필요 여부에 따라 페이지 이동
+        if (userData?.password_reset_required) {
+          router.push('/change-password');
+        } else {
+          router.push('/dashboard');
+        }
       } else {
+        // 데이터가 없지만 오류도 없는 경우는 드물지만 처리
+        console.warn('로그인 결과에 사용자 정보가 없습니다');
         router.push('/dashboard');
       }
     } catch (error: any) {
@@ -195,34 +183,41 @@ export default function LoginPage() {
       }
 
       if (data.user) {
-        await checkPasswordResetRequired(data.user.id);
+        // 사용자 추가 정보 가져오기
+        const { data: fullUserData, error: fullUserError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (fullUserError) {
+          console.error('사용자 정보 조회 오류:', fullUserError);
+        }
+        
+        // 로컬 스토리지에 사용자 정보 저장
+        const userToStore = {
+          id: data.user.id,
+          email: data.user.email,
+          user_metadata: fullUserData || data.user.user_metadata || {},
+          role: fullUserData?.role || 'user',
+          isAuthenticated: true
+        };
+        
+        localStorage.setItem('user', JSON.stringify(userToStore));
+        localStorage.setItem('is_authenticated', 'true');
+        
+        // 비밀번호 재설정 필요 여부에 따라 페이지 이동
+        if (fullUserData?.password_reset_required) {
+          router.push('/change-password');
+        } else {
+          router.push('/dashboard');
+        }
       } else {
         router.push('/dashboard');
       }
     } catch (error: any) {
       console.error('로그인 처리 오류:', error);
       throw error;
-    }
-  };
-
-  const checkPasswordResetRequired = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('users')
-      .select('password_reset_required')
-      .eq('id', userId)
-      .single();
-      
-    if (error) {
-      console.error('사용자 정보 조회 오류:', error);
-      router.push('/dashboard');
-      return;
-    }
-    
-    if (data && data.password_reset_required) {
-      // 비밀번호 변경이 필요한 경우 비밀번호 변경 페이지로 이동
-      router.push('/change-password');
-    } else {
-      router.push('/dashboard');
     }
   };
 
@@ -457,7 +452,7 @@ export default function LoginPage() {
             {/* 테스트 계정 정보 */}
             <div className="mt-4 p-3 bg-gray-50 rounded-md text-sm">
               <p className="text-gray-500 font-medium mb-1">테스트 계정:</p>
-              <p className="text-gray-600">관리자: admin@example.com / admin123</p>
+              <p className="text-gray-600">일반 사용자: user@example.com / password123</p>
             </div>
 
             <div>
